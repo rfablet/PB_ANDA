@@ -17,8 +17,7 @@ from scipy.ndimage.morphology import distance_transform_edt as bwdist
 import cv2
 
 def LR_perform(HR, path_LR, N_eof): 
-    """ Perform global PCA retrieving LR product """
-    
+    """ Perform global PCA retrieving LR product """   
     if not os.path.exists(path_LR):
         lr = np.copy(HR).reshape(HR.shape[0],-1)
         tmp = lr[0,:]
@@ -41,8 +40,7 @@ def LR_perform(HR, path_LR, N_eof):
     
    
 def Patch_define(sample, path_indices, path_neighbor_indices, patch_r, patch_c):
-    """ define spatial position of each patch over the whole image """
-    
+    """ define spatial position of each patch over the whole image """  
     if not os.path.exists(path_indices):
         r = np.arange(0,patch_r)
         c = np.arange(0,patch_c)
@@ -82,8 +80,7 @@ def Patch_define(sample, path_indices, path_neighbor_indices, patch_r, patch_c):
     return index_patch, neighbor_patches
  
 def PCA_perform(dX, path_dX_pca, N_eof, N_patches, patch_r, patch_c): 
-    """ Perform PCA on dX to retrieve catalog for AnDA """
-    
+    """ Perform PCA on dX to retrieve catalog for AnDA """  
     if not os.path.exists(path_dX_pca):
         pca = PCA(n_components=N_eof)
         patch_dx_full = np.zeros((N_patches*dX.shape[0],patch_r,patch_c))
@@ -116,8 +113,7 @@ def PCA_perform(dX, path_dX_pca, N_eof, N_patches, patch_r, patch_c):
     return dX_train, dX_eof_coeff, dX_eof_mu
 
 def sum_overlapping(tmp1,tmp2):
-    """ calculate overlapping area between patches  """
-     
+    """ calculate overlapping area between patches  """  
     bw = np.zeros(tmp1.shape)
     D = bwdist(bw==0)
     D = np.exp(-D)
@@ -138,7 +134,6 @@ def sum_overlapping(tmp1,tmp2):
             
 def Post_process(Pre_filtered, L, size_w, n_eof):
     """ Remove block artifact due to overlapping patches """
-    
     Post_filtered =  np.nan*np.zeros((L,Pre_filtered.shape[1],Pre_filtered.shape[2]))
     r_sub = np.arange(0,size_w)
     c_sub = np.arange(0,size_w)
@@ -171,8 +166,7 @@ def Post_process(Pre_filtered, L, size_w, n_eof):
     return Post_filtered
 
 def Gradient(img, order):
-    """ calcuate x, y gradient and magnitude """
-    
+    """ calcuate x, y gradient and magnitude """ 
     sobelx = cv2.Sobel(img,cv2.CV_64F,1,0,ksize=3)
     sobelx = sobelx/8.0
     sobely = cv2.Sobel(img,cv2.CV_64F,0,1,ksize=3)
@@ -187,7 +181,6 @@ def Gradient(img, order):
             
 def Load_data(PR):
     """ Load necessary datasets """
-    
     VAR_ = VAR()
     try:
         file_tmp = np.load(PR.path_X)
@@ -219,24 +212,38 @@ def Load_data(PR):
     # Perform global PCA to find LR product
     X_lr = LR_perform(X_initialization,PR.path_X_lr,PR.G_PCA)
     VAR_.X_lr = X_lr
-    # Retrieve dSLA: detail product, used for AnDA
-    VAR_.dX_orig = X-X_lr
-    # Retrieve dX_OI for comparison with AnDA's results
-    VAR_.Optimal_itrp = OI - X_lr[PR.training_days:,:,:]
-    del X_initialization, OI, X, X_lr
-    # used for retrieving specific catalog for each patch position
-    VAR_.index_patch, VAR_.neighbor_patchs = Patch_define(VAR_.dX_orig[0,:,:],PR.path_index_patches,PR.path_neighbor_patches, PR.patch_r, PR.patch_c)
-    # Retrieve dSLA_patch in PCA space: catalog used for AnDA
-    VAR_.dX_train, VAR_.dX_eof_coeff, VAR_.dX_eof_mu = PCA_perform(VAR_.dX_orig[:PR.training_days,:,:],PR.path_dX_PCA,PR.n,len(VAR_.index_patch),PR.patch_r,PR.patch_c)
-    # dSLA_GT as reference, dSLA_Obs by applying alongtrack mask
-    VAR_.dX_GT_test = np.copy(VAR_.dX_orig[PR.training_days:,:,:])
-    VAR_.Obs_test = np.copy(VAR_.dX_GT_test)   
-    for i in range(PR.test_days):
-        VAR_.Obs_test[i,np.isnan(mask[i,:,:])] = np.nan
-    VAR_.Obs_test = VAR_.Obs_test[:PR.test_days:PR.lag,:,:]
-    VAR_.dX_GT_test = VAR_.dX_GT_test[:PR.test_days:PR.lag,:,:]
-    VAR_.Optimal_itrp = VAR_.Optimal_itrp[:PR.test_days:PR.lag,:,:]
-    VAR_.X_lr = np.concatenate((VAR_.X_lr[:PR.training_days,:,:],VAR_.X_lr[PR.training_days::PR.lag,:,:]),axis=0)
+    if (PR.flag_scale):
+        # Retrieve dSLA: detail product, used for AnDA
+        VAR_.dX_orig = X-X_lr
+        # Retrieve dX_OI for comparison with AnDA's results
+        VAR_.Optimal_itrp = OI - X_lr[PR.training_days:,:,:]
+        del X_initialization, OI, X, X_lr
+        # used for retrieving specific catalog for each patch position
+        VAR_.index_patch, VAR_.neighbor_patchs = Patch_define(VAR_.dX_orig[0,:,:],PR.path_index_patches,PR.path_neighbor_patches, PR.patch_r, PR.patch_c)
+        # Retrieve dSLA_patch in PCA space: catalog used for AnDA
+        VAR_.dX_train, VAR_.dX_eof_coeff, VAR_.dX_eof_mu = PCA_perform(VAR_.dX_orig[:PR.training_days,:,:],PR.path_dX_PCA,PR.n,len(VAR_.index_patch),PR.patch_r,PR.patch_c)
+        # dSLA_GT as reference, dSLA_Obs by applying alongtrack mask
+        VAR_.dX_GT_test = np.copy(VAR_.dX_orig[PR.training_days:,:,:])
+        VAR_.Obs_test = np.copy(VAR_.dX_GT_test)   
+        for i in range(PR.test_days):
+            VAR_.Obs_test[i,np.isnan(mask[i,:,:])] = np.nan
+        VAR_.Obs_test = VAR_.Obs_test[:PR.test_days:PR.lag,:,:]
+        VAR_.dX_GT_test = VAR_.dX_GT_test[:PR.test_days:PR.lag,:,:]
+        VAR_.Optimal_itrp = VAR_.Optimal_itrp[:PR.test_days:PR.lag,:,:]
+        VAR_.X_lr = np.concatenate((VAR_.X_lr[:PR.training_days,:,:],VAR_.X_lr[PR.training_days::PR.lag,:,:]),axis=0)
+        VAR_.dX_orig = np.concatenate((VAR_.dX_orig[:PR.training_days,:,:],VAR_.dX_orig[PR.training_days::PR.lag,:,:]),axis=0)
+    else:
+        VAR_.dX_GT_test = np.copy(X[PR.training_days:,:,:])
+        VAR_.dX_GT_test = VAR_.dX_GT_test[:PR.test_days:PR.lag,:,:]
+        VAR_.Obs_test = np.copy(VAR_.dX_GT_test)   
+        for i in range(PR.test_days):
+            VAR_.Obs_test[i,np.isnan(mask[i,:,:])] = np.nan
+        VAR_.Optimal_itrp = np.copy(OI)
+        VAR_.Optimal_itrp = VAR_.Optimal_itrp[:PR.test_days:PR.lag,:,:]
+        #VAR_.dX_orig = np.concatenate((X[:PR.training_days,:,:],VAR_.Optimal_itrp),axis=0)
+        VAR_.dX_orig = np.copy(X_initialization)
+        VAR_.dX_orig = np.concatenate((VAR_.dX_orig[:PR.training_days,:,:],VAR_.dX_orig[PR.training_days::PR.lag,:,:]),axis=0)
+        
     return VAR_
 
 
