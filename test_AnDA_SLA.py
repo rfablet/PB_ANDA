@@ -29,14 +29,14 @@ PR_sla.test_days = 122 # num of test images: 2015
 PR_sla.lag = 1 # lag of time series: t -> t+lag
 PR_sla.G_PCA = 12 # N_eof for global PCA
 # Input dataset
-PR_sla.path_X = '/home/phi/test_global_scale/AnDA_github/data/SLA/SLA.npz' 
-PR_sla.path_OI = '/home/phi/test_global_scale/AnDA_github/data/SLA/OI.npz'
-PR_sla.path_mask = '/home/phi/test_global_scale/AnDA_github/data/SLA/alongtrack_mask.npz'
+PR_sla.path_X = './SLA.npz' 
+PR_sla.path_OI = './OI.npz'
+PR_sla.path_mask = './alongtrack_mask.npz'
 # Dataset automatically created during execution
-PR_sla.path_X_lr = '/home/phi/test_global_scale/AnDA_github/data/SLA/sla_lr.npz'
-PR_sla.path_dX_PCA = '/home/phi/test_global_scale/AnDA_github/data/SLA/dX_pca.npz'
-PR_sla.path_index_patches = '/home/phi/test_global_scale/AnDA_github/data/SLA/list_pos.pickle'
-PR_sla.path_neighbor_patches = '/home/phi/test_global_scale/AnDA_github/data/SLA/pair_pos.pickle'
+PR_sla.path_X_lr = './sla_lr.npz'
+PR_sla.path_dX_PCA = './dX_pca.npz'
+PR_sla.path_index_patches = './list_pos.pickle'
+PR_sla.path_neighbor_patches = './pair_pos.pickle'
 
 AF_sla = General_AF()
 AF_sla.flag_reduced = False # True: Reduced version of Local Linear AF
