@@ -78,7 +78,7 @@ The toolbox includes 3 main modules:
       AF_.k = 200  # number of analogs
       AF_.k_initial = 200 # retrieving k_initial nearest neighbors, then using condition to retrieve k analogs, k_initial must >= k
       AF_.neighborhood = np.ones([PR_.n,PR_.n]) # global analogs
-.      AF_.neighborhood = np.eye(PR_.n)+np.diag(np.ones(PR_.n-1),1)+ np.diag(np.ones(PR_.n-1),-1)+ \
+.     AF_.neighborhood = np.eye(PR_.n)+np.diag(np.ones(PR_.n-1),1)+ np.diag(np.ones(PR_.n-1),-1)+ \
                              np.diag(np.ones(PR_.n-2),2)+np.diag(np.ones(PR_.n-2),-2)
       AF_.neighborhood[0:2,:5] = 1
       AF_.neighborhood[PR_.n-2:,PR_.n-5:] = 1 # local analogs
