@@ -78,7 +78,7 @@ The toolbox includes 3 main modules:
       AF_.k = 200  # number of analogs
       AF_.k_initial = 200 # retrieving k_initial nearest neighbors, then using condition to retrieve k analogs, k_initial must >= k
       AF_.neighborhood = np.ones([PR_.n,PR_.n]) # global analogs
-      AF_.neighborhood = np.eye(PR_.n)+np.diag(np.ones(PR_.n-1),1)+ np.diag(np.ones(PR_.n-1),-1)+ \
+.      AF_.neighborhood = np.eye(PR_.n)+np.diag(np.ones(PR_.n-1),1)+ np.diag(np.ones(PR_.n-1),-1)+ \
                              np.diag(np.ones(PR_.n-2),2)+np.diag(np.ones(PR_.n-2),-2)
       AF_.neighborhood[0:2,:5] = 1
       AF_.neighborhood[PR_.n-2:,PR_.n-5:] = 1 # local analogs
@@ -109,7 +109,7 @@ The toolbox includes 3 main modules:
 2. Module **Transform functions** (*AnDa_transform_functions.py*): 
     * Perform Global PCA (to find LR), patch-based PCA for multi-scale assimilation
     * Post-processing to remove block artifact due to overlapping patches
-    * Perform VE-DINEOF
+    * Perform [VE-DINEOF](http://journals.plos.org/plosone/article?id=10.1371/journal.pone.0155928)
     * Find gradient, Fourier power spectrum
     * Loading and preprocessing data according to the parameters described in **PR**
 3. Module **Multi-scale Assimilation** (*Multiscale_Assimilation.py*): based on informations from PR, VAR, AF, defining a specific kind of assimilation
@@ -121,7 +121,7 @@ The toolbox includes 3 main modules:
        * Input: number of parallel jobs, or number of patches are executed simultaneously.
        
 # Test
-Specify all necessary parameters described in class **PR**, and **General_AF**
+Specify all necessary parameters described in class **PR**, and **General_AF**. <br />
 Load data into class **VAR**:
 ```bash
 VAR_ = VAR()
