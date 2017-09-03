@@ -30,12 +30,12 @@ PR_sst.test_days = 364 # num of test images: 2015
 PR_sst.lag = 3 # lag of time series: t -> t+lag
 PR_sst.G_PCA = 20 # N_eof for global PCA
 # Input dataset
-PR_sst.path_X = './sst.npz'
-PR_sst.path_OI = './OI.npz'
-PR_sst.path_mask = './metop_mask.npz'
+PR_sst.path_X = './sst.nc'
+PR_sst.path_OI = './OI.nc'
+PR_sst.path_mask = './metop_mask.nc'
 # Dataset automatically created during execution
-PR_sst.path_X_lr = './sst_lr_30.npz'
-PR_sst.path_dX_PCA = './dX_pca.npz'
+PR_sst.path_X_lr = './sst_lr.nc'
+PR_sst.path_dX_PCA = './dX_pca.nc'
 PR_sst.path_index_patches = './list_pos.pickle'
 PR_sst.path_neighbor_patches = './pair_pos.pickle'
 
@@ -59,14 +59,53 @@ AF_sst.R = 0.05
 VAR_sst = VAR()
 VAR_sst = Load_data(PR_sst) 
 
-file_tmp = np.load('./DINEOF.npz')
-VAR_sst.dX_cond = file_tmp['sst_lr']
-del file_tmp    
-VAR_sst.dX_cond = VAR_sst.dX_cond[:PR_sst.test_days:PR_sst.lag,:,:]
-VAR_sst.dX_cond = VAR_sst.dX_cond-VAR_sst.X_lr[PR_sst.training_days:,:,:]
+"""---------- Additional constraints for SST ------------ """
+""" Loading condition """
+VAR_sst.dX_cond = np.copy(VAR_sst.Optimal_itrp)
 for i in range(len(VAR_sst.dX_cond)):
     VAR_sst.dX_cond[i,~np.isnan(VAR_sst.Obs_test[i,:,:])] = VAR_sst.Obs_test[i,~np.isnan(VAR_sst.Obs_test[i,:,:])]   
+""" Loading and calculating physical variables (velocities, gradient of LR"""
+import scipy.io
+from tqdm import tqdm
+file_tmp = netCDF4.Dataset('./velocity_u.nc','r')
+v_x = file_tmp.variables.items()[0][1][:]
+file_tmp.close()
+v_x = np.concatenate((v_x[:PR_sst.training_days,:,:],v_x[PR_sst.training_days::PR_sst.lag,:,:]),axis=0)
+for i in tqdm(range(len(v_x))):
+    v_x[i,:,:] = Imputing_NaN(v_x[i,:,:])
+v_x[np.isnan(VAR_sst.dX_orig)] = np.nan
+vx_train, vx_eof_coeff, vx_eof_mu = PCA_perform(v_x[:PR_sst.training_days,:,:],'/home/phi/test_global_scale/AnDA_github/data/AMSRE/vx_pca.nc',PR_sst.n,len(VAR_sst.index_patch),PR_sst.patch_r,PR_sst.patch_c)
 
+file_tmp = netCDF4.Dataset('./velocity_v.nc','r')
+v_y = file_tmp.variables.items()[0][1][:]
+file_tmp.close()
+v_y = np.concatenate((v_y[:PR_sst.training_days,:,:],v_y[PR_sst.training_days::PR_sst.lag,:,:]),axis=0)
+for i in tqdm(range(len(v_y))):
+    v_y[i,:,:] = Imputing_NaN(v_y[i,:,:])
+v_y[np.isnan(VAR_sst.dX_orig)] = np.nan
+vy_train, vy_eof_coeff, vy_eof_mu = PCA_perform(v_y[:PR_sst.training_days,:,:],'/home/phi/test_global_scale/AnDA_github/data/AMSRE/vy_pca.nc',PR_sst.n,len(VAR_sst.index_patch),PR_sst.patch_r,PR_sst.patch_c) 
+
+g_x = np.copy(VAR_sst.X_lr)
+for i in tqdm(range(len(g_x))):    
+    tmp = Gradient(g_x[i,:,:],0)
+    g_x[i,:,:] = Imputing_NaN(tmp)
+g_x[np.isnan(VAR_sst.X_lr)] = np.nan   
+gx_train, gx_eof_coeff, gx_eof_mu = PCA_perform(g_x[:PR_sst.training_days,:,:],'/home/phi/test_global_scale/AnDA_github/data/AMSRE/gx_pca.nc',PR_sst.n,len(VAR_sst.index_patch),PR_sst.patch_r,PR_sst.patch_c)
+
+g_y = np.copy(VAR_sst.X_lr)
+for i in tqdm(range(len(g_y))):    
+    tmp = Gradient(g_y[i,:,:],1)
+    g_y[i,:,:] = Imputing_NaN(tmp)
+g_y[np.isnan(VAR_sst.X_lr)] = np.nan
+gy_train, gy_eof_coeff, gy_eof_mu = PCA_perform(g_y[:PR_sst.training_days,:,:],'/home/phi/test_global_scale/AnDA_github/data/AMSRE/gy_pca.nc',PR_sst.n,len(VAR_sst.index_patch),PR_sst.patch_r,PR_sst.patch_c)
+
+constraint_1 = [vx_train,v_x[PR_sst.training_days:],vx_eof_coeff,vx_eof_mu]
+constraint_2 = [vy_train,v_y[PR_sst.training_days:],vy_eof_coeff,vy_eof_mu]
+constraint_3 = [gx_train,g_x[PR_sst.training_days:],gx_eof_coeff,gx_eof_mu]
+constraint_4 = [gy_train,g_y[PR_sst.training_days:],gy_eof_coeff,gy_eof_mu]
+VAR_sst.model_constraint = []
+VAR_sst.model_constraint.append(constraint_1)
+VAR_sst.model_constraint.append(constraint_2)
 
 """  Assimilation  """
 r_start = 55
