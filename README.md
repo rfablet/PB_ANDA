@@ -127,7 +127,7 @@ Load data into class **VAR**:
 VAR_ = VAR()
 VAR_ = Load_data(PR_) 
 ```
-Visualize an example of reference Groundtruth, Observation and Optimal Interpolation product
+Visualize an example of reference Groundtruth (GT), Observation (Obs) and Low resolution Optimal Interpolation (OI) product
 ```bash
 day = 50
 colormap='nipy_spectral'
@@ -151,7 +151,7 @@ plt.colorbar()
 plt.title('OI')
 plt.draw()
 ```
-![](../master/Image/dis.png)
+![](../master/Image/ostia_obs.PNG)
 
 Define test zone (top-left point and size of zone) (note: must 4 values must be divisible by 5): 
 ```bash
