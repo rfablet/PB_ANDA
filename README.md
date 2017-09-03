@@ -24,13 +24,13 @@ The toolbox includes 3 main modules:
        PR_.test_days = 364 # num of test images: 2015
        PR_.lag = 1 # lag of time series: t -> t+lag
        PR_.G_PCA = 20 # N_eof for global PCA
-       # Input dataset
-       PR_.path_X = './data/AMSRE/sst.npz' # directory of sst data
-       PR_.path_OI = './data/AMSRE/OI.npz' # directory of OI product (ostia sst, in this case)
-       PR_.path_mask = './AMSRE/metop_mask.npz' # directory of observation mask
+       # Input dataset (format should be NETCDF (.nc))
+       PR_.path_X = './data/AMSRE/sst.nc' # directory of sst data
+       PR_.path_OI = './data/AMSRE/OI.nc' # directory of OI product (ostia sst, in this case)
+       PR_.path_mask = './AMSRE/metop_mask.nc' # directory of observation mask
        # Dataset automatically created during execution
-       PR_.path_X_lr = './data/AMSRE/sst_lr_30.npz' # directory of LR product
-       PR_.path_dX_PCA = './data/AMSRE/dX_pca.npz' # directory of PCA transformation of detail fields
+       PR_.path_X_lr = './data/AMSRE/sst_lr.nc' # directory of LR product
+       PR_.path_dX_PCA = './data/AMSRE/dX_pca.nc' # directory of PCA transformation of detail fields
        PR_.path_index_patches = './data/AMSRE/list_pos.pickle' # directory to store all position of each patch over image
        PR_.path_neighbor_patches = './data/AMSRE/pair_pos.pickle' # directory to store position of each path's neighbors 
       ```
@@ -153,7 +153,7 @@ plt.draw()
 ```
 ![](../master/Image/dis.png)
 
-Define test zone (top-left point and size of zone): 
+Define test zone (top-left point and size of zone) (note: must 4 values must be divisible by 5): 
 ```bash
 r_start = 0 
 c_start = 0 
