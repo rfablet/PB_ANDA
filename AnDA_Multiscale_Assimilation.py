@@ -29,8 +29,7 @@ class Multiscale_Assimilation:
         self.PR = _PR
         self.AF = _AF
     def single_patch_assimilation(self,coordinate):
-        """  single patch assimilation """
-        
+        """  single patch assimilation """        
         global VAR
         mkl.set_num_threads(1)
         # position of patch
@@ -61,7 +60,7 @@ class Multiscale_Assimilation:
                 listpos = sum(list(map((lambda x:range(x*self.PR.training_days,(x+1)*self.PR.training_days)),listpos)),[])      
                 # remove last patch at each position out of retrieving analogs
                 jet = len(listpos)/self.PR.training_days
-            except ValueError:
+            excep:
                 print "Cannot define position of patch!!!"
                 quit()
         else:
@@ -113,29 +112,23 @@ class Multiscale_Assimilation:
                 list_kdtree.append(neigh)   
         AF.list_kdtree = list_kdtree
         # Specify physical model as conditions for AF
+        AF.cata_model_full = []
+        AF.x_model = []
         if (AF.flag_model):
             try:
-                vx_test_p = VAR.gr_vl_test['vx'][:,r[0]:r[-1]+1,c[0]:c[-1]+1]
-                vx_test_p = np.dot(vx_test_p.reshape(vx_test_p.shape[0],-1)-VAR.gr_vl_coeff['vx_eof_mu'],VAR.gr_vl_coeff['vx_eof_coeff'])
-                vy_test_p = VAR.gr_vl_test['vy'][:,r[0]:r[-1]+1,c[0]:c[-1]+1]
-                vy_test_p = np.dot(vy_test_p.reshape(vy_test_p.shape[0],-1)-VAR.gr_vl_coeff['vy_eof_mu'],VAR.gr_vl_coeff['vy_eof_coeff'])
-                gx_test_p = VAR.gr_vl_test['gx'][:,r[0]:r[-1]+1,c[0]:c[-1]+1]
-                gx_test_p = np.dot(gx_test_p.reshape(gx_test_p.shape[0],-1)-VAR.gr_vl_coeff['gx_eof_mu'],VAR.gr_vl_coeff['gx_eof_coeff'])
-                gy_test_p = VAR.gr_vl_test['gy'][:,r[0]:r[-1]+1,c[0]:c[-1]+1]
-                gy_test_p = np.dot(gy_test_p.reshape(gy_test_p.shape[0],-1)-VAR.gr_vl_coeff['gy_eof_mu'],VAR.gr_vl_coeff['gy_eof_coeff'])
-                gr_vl_test_p = np.concatenate((vx_test_p[:,:], vy_test_p[:,:]),axis=1)
-                if (AF.flag_catalog):
-                    AF.cata_model_full = VAR.gr_vl_train[listpos,:] 
-                else:
-                    AF.cata_model_full = VAR.gr_vl_train 
-            except ValueError:
+                for i_model in range(len(VAR.model_constraint)):
+                    model_test_p = VAR.model_constraint[i_model][1][:,r[0]:r[-1]+1,c[0]:c[-1]+1]
+                    model_test_p = np.dot(model_test_p.reshape(model_test_p.shape[0],-1)-VAR.model_constraint[i_model][3],VAR.model_constraint[i_model][2])
+                    AF.x_model.append(model_test_p)
+                    if (AF.flag_catalog):
+                        AF.cata_model_full.append(VAR.model_constraint[i_model][0][listpos,:]) 
+                    else:
+                        AF.cata_model_full.append(VAR.model_constraint[i_model][0])
+                AF.x_model = np.hstack(AF.x_model)
+                AF.cata_model_full = np.hstack(AF.cata_model_full)
+            except:
                 print "Cannot find physical model for AF !!!"
-                quit()
-        else:
-            AF.cata_model_full = []
-            gr_vl_test_p = None
-        AF.x_model = gr_vl_test_p  
-                
+                quit()                 
         # Specify dX condition for retrieving analogs
         if (AF.flag_cond):
             try:
@@ -155,10 +148,9 @@ class Multiscale_Assimilation:
             B = AF.B * np.eye(AF.coeff_dX.shape[1])
             H = AF.coeff_dX
             if (self.PR.flag_scale):
+                R = AF.R * np.eye(len(sea_mask)) 
+            else:                  
                 R = AF.R
-            else:
-                R = AF.R * np.eye(len(sea_mask))   
-                #R = AF.R
             @staticmethod
             def m(x,in_x): # x: query point at time t, in_x: index of condition at time t+lag
                 return AnDA_AF(x, in_x, AF)        
