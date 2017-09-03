@@ -12,7 +12,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from AnDA_variables import PR, VAR, General_AF, AnDA_result
 from AnDA_stat_functions import raPsd2dv1
-from AnDA_transform_functions import Load_data, Gradient, Post_process, LR_perform
+from AnDA_transform_functions import Load_data, Gradient, Post_process, LR_perform, VE_Dineof, MS_VE_Dineof, Imputing_NaN, PCA_perform
 from AnDA_stat_functions import AnDA_RMSE, AnDA_correlate
 from AnDA_Multiscale_Assimilation import Multiscale_Assimilation as MS_AnDA
 import pickle
