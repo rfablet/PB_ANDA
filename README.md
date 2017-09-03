@@ -214,8 +214,8 @@ To compare with AnDA interpolation:
      MS_AnDA_ = MS_AnDA(VAR_, PR_, AF_)
      itrp_G_AnDA = MS_AnDA_.single_patch_assimilation([np.arange(r_start,r_start+r_length),np.arange(c_start,c_start+c_length)])
      ``` 
-Compare Fourier power spectrum (**note** that the input of *raPsd2dv1* should be without land pixel (avoid NaN values). 
-```bash
+Display interpolation performance & Fourier power spectrum (**note** that the input of *raPsd2dv1* should be without land pixel (avoid NaN values). 
+```bash # Plot Fourier power spectrum
 day =11 # 82
 res_ = 0.25
 f0, Pf_  = raPsd2dv1(itrp_G_AnDA[day,:,:],resSLA,True)
@@ -227,4 +227,4 @@ plt.legend()
 plt.xlabel('Wavelength (km)')
 plt.ylabel('Fourier power spectrum')
 ```
-![](../master/Image/psd.PNG)
+![](../master/Image/ostia_dis.png)
