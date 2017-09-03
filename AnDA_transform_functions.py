@@ -31,11 +31,18 @@ def LR_perform(HR, path_LR, N_eof):
         DataReconstructed_global = np.dot(score_global, coeff_global.T) +mu_global
         lr[:,sea_v2] = DataReconstructed_global
         lr = lr.reshape(HR.shape)
-        np.savez(path_LR, lr = lr)
+        if not (path_LR == ''):
+            fid = netCDF4.Dataset(path_LR,'w', format='NETCDF4')
+            fid.createDimension('lat', HR.shape[1])        
+            fid.createDimension('lon', HR.shape[2])
+            fid.createDimension('time', HR.shape[0])
+            fid.createVariable("lr", "f8",("time","lat", "lon"),fill_value=-32768,zlib=True)
+            fid.variables['lr'][:] = lr
+            fid.close()
     else:
-        file_tmp = np.load(path_LR)
-        lr= file_tmp['lr']
-        del file_tmp            
+        file_tmp = netCDF4.Dataset(path_LR,'r')
+        lr = file_tmp.variables.items()[0][1][:]
+        file_tmp.close()         
     return lr
     
    
@@ -102,14 +109,24 @@ def PCA_perform(dX, path_dX_pca, N_eof, N_patches, patch_r, patch_c):
         dX_train = pca.fit_transform(patch_dx_full)
         dX_eof_coeff = pca.components_.T
         dX_eof_mu = pca.mean_
-        print np.sum(pca.explained_variance_ratio_)
-        np.savez(path_dX_pca, dX_train = dX_train, dX_eof_coeff = dX_eof_coeff, dX_eof_mu = dX_eof_mu)
+        if not (path_dX_pca == ''):
+            fid = netCDF4.Dataset(path_dX_pca,'w', format='NETCDF4')
+            fid.createDimension('lat', N_eof)        
+            fid.createDimension('lon', patch_r*patch_c)
+            fid.createDimension('time', N_patches*dX.shape[0])
+            fid.createVariable("dX_train", "f8",("time","lat"),fill_value=-32768,zlib=True)
+            fid.variables['dX_train'][:] = dX_train
+            fid.createVariable("dX_eof_coeff", "f8",("lon","lat"),fill_value=-32768)
+            fid.variables['dX_eof_coeff'][:] = dX_eof_coeff
+            fid.createVariable("dX_eof_mu", "f8",("lon",),fill_value=-32768)
+            fid.variables['dX_eof_mu'][:] = dX_eof_mu
+            fid.close()
     else:
-        file_tmp = np.load(path_dX_pca)
-        dX_train = file_tmp['dX_train']
-        dX_eof_coeff = file_tmp['dX_eof_coeff']
-        dX_eof_mu = file_tmp['dX_eof_mu']
-        del file_tmp
+        file_tmp = netCDF4.Dataset(path_dX_pca,'r')
+        dX_train = file_tmp.variables['dX_train'][:]
+        dX_eof_coeff = file_tmp.variables['dX_eof_coeff'][:]
+        dX_eof_mu = file_tmp.variables['dX_eof_mu'][:]
+        file_tmp.close()
     return dX_train, dX_eof_coeff, dX_eof_mu
 
 def sum_overlapping(tmp1,tmp2):
@@ -178,31 +195,96 @@ def Gradient(img, order):
         return sobely
     else:
         return sobel_norm
-            
+
+def Imputing_NaN(data, invalid=None):
+    """
+    Replace the value of invalid 'data' cells (indicated by 'invalid') 
+    by the value of the nearest valid data cell
+    """
+    import scipy.ndimage as nd
+    if invalid is None: invalid = np.isnan(data)
+    ind = nd.distance_transform_edt(invalid, return_distances=False, return_indices=True)
+    return data[tuple(ind)]
+    
+def VE_Dineof(PR, HR, OI, mask, N_eof, n_iter):
+    start_time = time.time()
+    lr = np.copy(OI)
+    X_initialization = np.copy(HR)
+    print np.mean(AnDA_RMSE(HR[PR.training_days:],lr))
+    for i in tqdm(range(n_iter)):        
+        for j in range(PR.test_days):
+            X_initialization[PR.training_days+j,np.isnan(mask[j,:,:])] = lr[j,np.isnan(mask[j,:,:])]
+        lr = LR_perform(X_initialization, '', N_eof)
+        lr = lr[PR.training_days:,:,:]
+        print np.mean(AnDA_RMSE(HR[PR.training_days:],lr))
+    print("---Processing time:  %s seconds ---" % (time.time() - start_time))    
+    return lr
+
+def MS_VE_Dineof(PR, HR, OI, mask, N_eof, n_iter):
+  
+    X_initialization = np.copy(HR)    
+    Post_filtered =  np.nan*np.zeros(OI.shape)
+    r_sub = np.arange(0,20)
+    c_sub = np.arange(0,20)
+    ind = 0
+    while (len(r_sub)>0):
+        while (len(c_sub)>0):
+            lr = np.copy(OI[:,r_sub[0]:r_sub[-1]+1,c_sub[0]:c_sub[-1]+1])
+            sea_mask = np.where(~np.isnan(lr[0,:,:].flatten()))[0]
+            if (len(sea_mask)>0):  
+                for i in range(n_iter):  
+                    tmp = X_initialization[:,r_sub[0]:r_sub[-1]+1,c_sub[0]:c_sub[-1]+1]
+                    for j in range(PR.test_days):
+                        tmp[PR.training_days+j,np.isnan(mask[j,r_sub[0]:r_sub[-1]+1,c_sub[0]:c_sub[-1]+1])] = lr[j,np.isnan(mask[j,r_sub[0]:r_sub[-1]+1,c_sub[0]:c_sub[-1]+1])]
+                    tmp = tmp.reshape(tmp.shape[0],-1)
+                    tmp_no_land = tmp[:,sea_mask]                     
+                    pca = PCA(n_components=len(sea_mask))
+                    if (len(sea_mask)>N_eof):
+                        pca = PCA(n_components=N_eof)
+                    score_tmp = pca.fit_transform(tmp_no_land)
+                    coeff_tmp = pca.components_.T
+                    mu_tmp = pca.mean_
+                    DataReconstructed_tmp = np.dot(score_tmp, coeff_tmp.T) +mu_tmp
+                    tmp[:,sea_mask] = DataReconstructed_tmp         
+                    lr = tmp[PR.training_days:,:].reshape(lr.shape)
+                for u in range(0,PR.test_days):
+                    tmp2 = Post_filtered[u,r_sub[0]:r_sub[-1]+1,c_sub[0]:c_sub[-1]+1]
+                    tmp1 = lr[u,:,:]               
+                    Post_filtered[u,r_sub[0]:r_sub[-1]+1,c_sub[0]:c_sub[-1]+1] = sum_overlapping(tmp1,tmp2)
+                ind = ind+1
+                print ind
+            c_sub = c_sub+15
+            c_sub = c_sub[c_sub<HR.shape[2]]    
+        r_sub = r_sub+15
+        r_sub = r_sub[r_sub<HR.shape[1]]
+        c_sub = np.arange(0,20)         
+    return Post_filtered
+
 def Load_data(PR):
     """ Load necessary datasets """
     VAR_ = VAR()
     try:
-        file_tmp = np.load(PR.path_X)
-        X = file_tmp[file_tmp.files[0]]
+        file_tmp = netCDF4.Dataset(PR.path_X,'r')
+        X = file_tmp.variables.items()[0][1][:].astype('float64')
+        X = X[-(PR.training_days+PR.test_days):]
         del file_tmp
-    except ValueError:
+    except:
         print "Cannot find dataset: %s" %(PR.path_X)
         quit()
     # Load Optimal Interpolation as LR product
     try:
-        file_tmp = np.load(PR.path_OI)
-        OI = file_tmp[file_tmp.files[0]]
+        file_tmp = netCDF4.Dataset(PR.path_OI,'r')
+        OI = file_tmp.variables.items()[0][1][:].astype('float64')
         del file_tmp
-    except ValueError:
+    except:
         print "Cannot find dataset: %s" %(PR.path_OI)
         quit()
     # Load Alongtrack SLA as observation mask
     try:
-        file_tmp = np.load(PR.path_mask)
-        mask = file_tmp[file_tmp.files[0]]
+        file_tmp = netCDF4.Dataset(PR.path_mask,'r')
+        mask = file_tmp.variables.items()[0][1][:].astype('float64')
         del file_tmp
-    except ValueError:
+    except:
         print "Cannot find dataset: %s" %(PR.path_mask)
         quit()
     # First step, filling missing data by OI
