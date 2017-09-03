@@ -227,4 +227,4 @@ plt.legend()
 plt.xlabel('Wavelength (km)')
 plt.ylabel('Fourier power spectrum')
 ```
-![](../master/Image/ostia_dis.png)
+![](../master/Image/ostia_dis.PNG)
