@@ -115,7 +115,7 @@ def AnDA_analog_forecasting(x, in_x, AF):
                     if (AF.flag_model):
                         cata_model_tmp = np.concatenate((np.ones((len(cata_model[index_i_cluster,:]),1)),cata_model[index_i_cluster,:]),axis=1)
                         S = np.linalg.lstsq(cata_model_tmp,successors[index_i_cluster,:])[0]
-                        ytest_A = np.dot(np.insert(AF.x_model[in_x-1,:],0,1),S)
+                        ytest_A = np.dot(np.insert(AF.x_model[in_x,:],0,1),S)
                         tmp1 = np.dot(cata_model_tmp,S)
                         A = np.concatenate((np.ones((len(index_i_cluster),1)),analogs[index_i_cluster,:], tmp1),axis=1)
                         tmp4 = np.linalg.lstsq(A,successors[index_i_cluster,:])[0]
@@ -178,7 +178,7 @@ def AnDA_analog_forecasting(x, in_x, AF):
                         successors_tmp = successors[index_knn[i_N,:],:]
                         analogs_tmp = analogs[index_knn[i_N,:],:]
                         S = np.linalg.lstsq(cata_model_tmp,successors_tmp)[0]
-                        ytest_A = np.dot(np.insert(AF.x_model[in_x-1,:],0,1),S)
+                        ytest_A = np.dot(np.insert(AF.x_model[in_x,:],0,1),S)
                         tmp1 = np.dot(cata_model_tmp,S)
                         A = np.concatenate((np.ones((AF.k,1)),analogs_tmp,tmp1),axis=1)
                         tmp4 = np.linalg.lstsq(A,successors_tmp)[0]

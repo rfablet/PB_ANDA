@@ -14,12 +14,13 @@ from AnDA_variables import PR, VAR, General_AF, AnDA_result
 from AnDA_stat_functions import raPsd2dv1
 from AnDA_transform_functions import Load_data, Gradient, Post_process, LR_perform
 from AnDA_stat_functions import AnDA_RMSE, AnDA_correlate
-from Multiscale_Assimilation import Multiscale_Assimilation as MS_AnDA
+from AnDA_Multiscale_Assimilation import Multiscale_Assimilation as MS_AnDA
 import pickle
 np.random.seed(1)
 
 ###### Parameters setting for SST ###########################
 PR_sla = PR()
+PR_sla.flag_scale = True  # True: multi scale, False: one scale
 PR_sla.n = 15 # dimension state
 PR_sla.patch_r = 20 # size of patch
 PR_sla.patch_c = 20 # size of patch
@@ -28,14 +29,14 @@ PR_sla.test_days = 122 # num of test images: 2015
 PR_sla.lag = 1 # lag of time series: t -> t+lag
 PR_sla.G_PCA = 12 # N_eof for global PCA
 # Input dataset
-PR_sla.path_X = '/home/phi/test_global_scale/AnDA_github/data/SLA/SLA.npz' 
-PR_sla.path_OI = '/home/phi/test_global_scale/AnDA_github/data/SLA/OI.npz'
-PR_sla.path_mask = '/home/phi/test_global_scale/AnDA_github/data/SLA/alongtrack_mask.npz'
+PR_sla.path_X = './SLA.npz' 
+PR_sla.path_OI = './OI.npz'
+PR_sla.path_mask = './alongtrack_mask.npz'
 # Dataset automatically created during execution
-PR_sla.path_X_lr = '/home/phi/test_global_scale/AnDA_github/data/SLA/sla_lr.npz'
-PR_sla.path_dX_PCA = '/home/phi/test_global_scale/AnDA_github/data/SLA/dX_pca.npz'
-PR_sla.path_index_patches = '/home/phi/test_global_scale/AnDA_github/data/SLA/list_pos.pickle'
-PR_sla.path_neighbor_patches = '/home/phi/test_global_scale/AnDA_github/data/SLA/pair_pos.pickle'
+PR_sla.path_X_lr = './sla_lr.npz'
+PR_sla.path_dX_PCA = './dX_pca.npz'
+PR_sla.path_index_patches = './list_pos.pickle'
+PR_sla.path_neighbor_patches = './pair_pos.pickle'
 
 AF_sla = General_AF()
 AF_sla.flag_reduced = False # True: Reduced version of Local Linear AF
@@ -44,8 +45,6 @@ AF_sla.flag_cond = False # True: use Obs at t+lag as condition to select success
 AF_sla.flag_model = False # True: Use gradient, velocity as additional regressors in AF
 AF_sla.flag_catalog = True # True: each catalog for each patch position
                     # False: only one catalog for all positions
-AF_sla.flag_scale = True  # True: multi scale
-                    # False: one scale
 AF_sla.cluster = 1       # clusterized version AF
 AF_sla.k = 50 # number of analogs
 AF_sla.k_initial = 200 # retrieving k_initial nearest neighbors, then using condition to retrieve k analogs 
@@ -64,9 +63,12 @@ r_start = 75
 c_start = 35
 r_length = 65
 c_length = 65
+level = 22 # 22 patches executed simultaneously
+
+saved_path =  'saved_path.pickle'
 AnDA_sla_1 = AnDA_result()
 MS_AnDA_sla = MS_AnDA(VAR_sla, PR_sla, AF_sla)
-AnDA_sla_1 = MS_AnDA_sla.multi_patches_assimilation('/home/phi/test_global_scale/AnDA_github/data/SLA/AnDA/AnDA_1.pickle', 8, r_start, r_length, c_start, c_length)
+AnDA_sla_1 = MS_AnDA_sla.multi_patches_assimilation(level, r_start, r_length, c_start, c_length)
 
 """ Postprocessing step: remove block artifact (do PCA twice gives perfect results) """
 Pre_filtered = np.copy(VAR_sla.dX_orig[:PR_sla.training_days,r_start:r_start+r_length,c_start:c_start+c_length]+VAR_sla.X_lr[:PR_sla.training_days,r_start:r_start+r_length,c_start:c_start+c_length])
@@ -80,8 +82,12 @@ X_initialization[PR_sla.training_days:,:,:] = AnDA_sla_1.itrp_postAnDA
 X_lr = LR_perform(X_initialization,'',100)
 AnDA_sla_1.itrp_postAnDA = X_lr[PR_sla.training_days:,:,:]
 
+""" Save AnDA result """         
+with open(saved_path, 'wb') as handle:
+    pickle.dump(AnDA_sla_1, handle)
+    
 """  Reload saved AnDA result  """
-with open('./data/AMSRE/AnDA/AnDA_1.pickle', 'rb') as handle:
+with open(saved_path, 'rb') as handle:
     AnDA_sla_1 = pickle.load(handle)    
 
 """  Radial Power Spetral  """

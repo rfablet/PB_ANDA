@@ -1,5 +1,5 @@
 
-# DESCRIPTION
+# DESCRIPTION 
 PB-MS-AnDA is a Python library for Patch-Based Multi-scale Analog Data Assimilation, applications to ocean remote sensing. We presented a novel data-driven model for the spatio-temporal interpolation of satellite-derived geophysical fields fields, an extension of analog data assimilation framework (https://github.com/ptandeo/AnDA) to high-dimensional satellite-derived geophysical fields.
  
 This Python library is an additional material of the publication "Data-driven Models for the Spatio-Temporal Interpolation of satellite-derived SST Fields", from **R. Fablet, P. Huynh Viet, R. Lguensat**, accepted to *IEEE Transactions on Computational Imaging*
@@ -24,13 +24,13 @@ The toolbox includes 3 main modules:
        PR_.test_days = 364 # num of test images: 2015
        PR_.lag = 1 # lag of time series: t -> t+lag
        PR_.G_PCA = 20 # N_eof for global PCA
-       # Input dataset
-       PR_.path_X = './data/AMSRE/sst.npz' # directory of sst data
-       PR_.path_OI = './data/AMSRE/OI.npz' # directory of OI product (ostia sst, in this case)
-       PR_.path_mask = './AMSRE/metop_mask.npz' # directory of observation mask
+       # Input dataset (format should be NETCDF (.nc))
+       PR_.path_X = './data/AMSRE/sst.nc' # directory of sst data
+       PR_.path_OI = './data/AMSRE/OI.nc' # directory of OI product (ostia sst, in this case)
+       PR_.path_mask = './AMSRE/metop_mask.nc' # directory of observation mask
        # Dataset automatically created during execution
-       PR_.path_X_lr = './data/AMSRE/sst_lr_30.npz' # directory of LR product
-       PR_.path_dX_PCA = './data/AMSRE/dX_pca.npz' # directory of PCA transformation of detail fields
+       PR_.path_X_lr = './data/AMSRE/sst_lr.nc' # directory of LR product
+       PR_.path_dX_PCA = './data/AMSRE/dX_pca.nc' # directory of PCA transformation of detail fields
        PR_.path_index_patches = './data/AMSRE/list_pos.pickle' # directory to store all position of each patch over image
        PR_.path_neighbor_patches = './data/AMSRE/pair_pos.pickle' # directory to store position of each path's neighbors 
       ```
@@ -109,7 +109,7 @@ The toolbox includes 3 main modules:
 2. Module **Transform functions** (*AnDa_transform_functions.py*): 
     * Perform Global PCA (to find LR), patch-based PCA for multi-scale assimilation
     * Post-processing to remove block artifact due to overlapping patches
-    * Perform VE-DINEOF
+    * Perform [VE-DINEOF](http://journals.plos.org/plosone/article?id=10.1371/journal.pone.0155928)
     * Find gradient, Fourier power spectrum
     * Loading and preprocessing data according to the parameters described in **PR**
 3. Module **Multi-scale Assimilation** (*Multiscale_Assimilation.py*): based on informations from PR, VAR, AF, defining a specific kind of assimilation
@@ -121,13 +121,13 @@ The toolbox includes 3 main modules:
        * Input: number of parallel jobs, or number of patches are executed simultaneously.
        
 # Test
-Specify all necessary parameters described in class **PR**, and **General_AF**
+Specify all necessary parameters described in class **PR**, and **General_AF**. <br />
 Load data into class **VAR**:
 ```bash
 VAR_ = VAR()
 VAR_ = Load_data(PR_) 
 ```
-Visualize an example of reference Groundtruth, Observation and Optimal Interpolation product
+Visualize an example of reference Groundtruth (GT), Observation (Obs) and Low resolution Optimal Interpolation (OI) product
 ```bash
 day = 50
 colormap='nipy_spectral'
@@ -151,9 +151,9 @@ plt.colorbar()
 plt.title('OI')
 plt.draw()
 ```
-![](../master/Image/dis.png)
+![](../master/Image/ostia_obs.PNG)
 
-Define test zone (top-left point and size of zone): 
+Define test zone (top-left point and size of zone) (note: must 4 values must be divisible by 5): 
 ```bash
 r_start = 0 
 c_start = 0 
@@ -214,8 +214,8 @@ To compare with AnDA interpolation:
      MS_AnDA_ = MS_AnDA(VAR_, PR_, AF_)
      itrp_G_AnDA = MS_AnDA_.single_patch_assimilation([np.arange(r_start,r_start+r_length),np.arange(c_start,c_start+c_length)])
      ``` 
-Compare Fourier power spectrum (**note** that the input of *raPsd2dv1* should be without land pixel (avoid NaN values). 
-```bash
+Display interpolation performance & Fourier power spectrum (**note** that the input of *raPsd2dv1* should be without land pixel (avoid NaN values). 
+```bash # Plot Fourier power spectrum
 day =11 # 82
 res_ = 0.25
 f0, Pf_  = raPsd2dv1(itrp_G_AnDA[day,:,:],resSLA,True)
@@ -227,4 +227,4 @@ plt.legend()
 plt.xlabel('Wavelength (km)')
 plt.ylabel('Fourier power spectrum')
 ```
-![](../master/Image/psd.PNG)
+![](../master/Image/ostia_dis.PNG)

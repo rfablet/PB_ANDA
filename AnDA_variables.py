@@ -91,9 +91,7 @@ class VAR:
     dX_GT_test = [] # dX GT in test year
     Obs_test = [] # Observation in test year, by applying mask to dX GT    
     dX_cond = [] # condition used for AF
-    gr_vl_train = [] # gradient, velocity used as physical condition
-    gr_vl_test = {}  
-    gr_vl_coeff = {}        
+    model_constraint = [] # gradient, velocity used as physical condition 
     index_patch = [] # store order of every image patch: 0, 1,..total_patchs
     neighbor_patchs = [] # store order of neighbors of every image patch
    
